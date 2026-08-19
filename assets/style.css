@@ -1,0 +1,235 @@
+/* =========================================================================
+   SmartScribe AI — design tokens & component styling
+   Signature element: the "highlighter sweep" under key phrases — a nod to
+   the product's actual job of deciding what in a document deserves your
+   attention. Kept to one moment; everything else stays quiet and disciplined.
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --sb-ink: #14213D;
+  --sb-ink-soft: #3C4A6B;
+  --sb-paper: #F8F7F3;
+  --sb-paper-raised: #FFFFFF;
+  --sb-highlight: #F2B705;
+  --sb-highlight-soft: #FCEDB8;
+  --sb-teal: #2F6F63;
+  --sb-teal-soft: #E4EFEC;
+  --sb-charcoal: #2B2E33;
+  --sb-muted: #6B7280;
+  --sb-border: #E4E1D8;
+  --sb-error: #B3432B;
+  --sb-error-soft: #F6E4DE;
+  --sb-radius: 14px;
+  --sb-radius-sm: 8px;
+  --sb-shadow: 0 1px 2px rgba(20, 33, 61, 0.04), 0 8px 24px rgba(20, 33, 61, 0.06);
+}
+
+/* ---- base --------------------------------------------------------------*/
+.stApp {
+  background: var(--sb-paper);
+  color: var(--sb-charcoal);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.stApp h1, .stApp h2, .stApp h3 {
+  font-family: 'Source Serif 4', Georgia, serif;
+  color: var(--sb-ink);
+  letter-spacing: -0.01em;
+}
+.stApp h1 { font-weight: 700; }
+.stApp h2 { font-weight: 600; }
+
+section[data-testid="stSidebar"] {
+  background: var(--sb-paper-raised);
+  border-right: 1px solid var(--sb-border);
+}
+section[data-testid="stSidebar"] .stMarkdown p { color: var(--sb-ink-soft); }
+
+/* ---- brand mark ----------------------------------------------------------*/
+.sb-brand {
+  font-family: 'Source Serif 4', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--sb-ink);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.15rem;
+}
+.sb-brand-mark {
+  display: inline-flex;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 6px;
+  background: var(--sb-ink);
+  color: var(--sb-highlight);
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.sb-tagline {
+  color: var(--sb-muted);
+  font-size: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+/* ---- hero ----------------------------------------------------------------*/
+.sb-hero { padding: 1.5rem 0 0.5rem 0; }
+.sb-hero-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--sb-teal);
+  margin-bottom: 0.75rem;
+}
+.sb-hero h1 {
+  font-size: clamp(2rem, 4vw, 2.9rem);
+  line-height: 1.15;
+  margin-bottom: 0.75rem;
+}
+.sb-hero p.sb-subtitle {
+  font-size: 1.05rem;
+  color: var(--sb-ink-soft);
+  max-width: 42rem;
+  margin-bottom: 0;
+}
+
+/* Signature element: highlighter sweep under key phrases */
+.sb-highlight { position: relative; white-space: nowrap; }
+.sb-highlight::before {
+  content: "";
+  position: absolute;
+  left: -0.15em;
+  right: -0.15em;
+  bottom: 0.05em;
+  height: 0.42em;
+  background: var(--sb-highlight);
+  opacity: 0.55;
+  border-radius: 3px;
+  z-index: -1;
+  transform-origin: left;
+  animation: sb-sweep 0.7s ease-out 0.15s both;
+}
+@keyframes sb-sweep {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-highlight::before { animation: none; transform: scaleX(1); }
+}
+
+/* ---- bordered cards (st.container(border=True)) -------------------------*/
+div[data-testid="stVerticalBlockBorderWrapper"] {
+  border-radius: var(--sb-radius) !important;
+  border-color: var(--sb-border) !important;
+  background: var(--sb-paper-raised);
+  transition: box-shadow 0.15s ease;
+}
+div[data-testid="stVerticalBlockBorderWrapper"]:hover { box-shadow: var(--sb-shadow); }
+
+.sb-feature-icon {
+  display: inline-flex;
+  width: 2.2rem;
+  height: 2.2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--sb-teal-soft);
+  color: var(--sb-teal);
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ---- buttons ---------------------------------------------------------*/
+.stButton > button {
+  border-radius: var(--sb-radius-sm);
+  font-weight: 600;
+  border: 1px solid var(--sb-border);
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+.stButton > button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(20, 33, 61, 0.08);
+}
+.stButton > button[kind="primary"] { background: var(--sb-ink); border-color: var(--sb-ink); }
+.stButton > button[kind="primary"]:hover { background: #1c2c52; }
+
+.stDownloadButton > button {
+  border-radius: var(--sb-radius-sm);
+  border: 1px solid var(--sb-border);
+  font-weight: 600;
+}
+
+/* ---- status pill -------------------------------------------------------*/
+.sb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.sb-pill-ok { background: var(--sb-teal-soft); color: var(--sb-teal); }
+.sb-pill-warn { background: var(--sb-error-soft); color: var(--sb-error); }
+.sb-pill-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; background: currentColor; }
+
+/* ---- insight metric grid ------------------------------------------------*/
+.sb-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin: 0.5rem 0 1rem 0;
+}
+.sb-metric {
+  background: var(--sb-paper-raised);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-sm);
+  padding: 0.85rem 1rem;
+}
+.sb-metric-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--sb-ink);
+  line-height: 1.25;
+}
+.sb-metric-label {
+  font-size: 0.72rem;
+  color: var(--sb-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.2rem;
+}
+
+/* ---- misc ---------------------------------------------------------------*/
+.sb-section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--sb-teal);
+  margin-bottom: 0.4rem;
+  margin-top: 0.6rem;
+}
+.sb-muted { color: var(--sb-muted); font-size: 0.88rem; }
+
+[data-testid="stFileUploaderDropzone"] {
+  border-radius: var(--sb-radius);
+  border: 1.5px dashed var(--sb-border);
+  background: var(--sb-paper-raised);
+}
+
+.sb-divider { border: none; border-top: 1px solid var(--sb-border); margin: 1.25rem 0; }
+
+textarea, .stTextArea textarea {
+  border-radius: var(--sb-radius-sm) !important;
+}
