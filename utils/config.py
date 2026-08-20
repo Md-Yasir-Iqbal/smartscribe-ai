@@ -39,10 +39,15 @@ DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 MIN_TEXT_CHARS = 40
 MAX_TEXT_CHARS = 100_000
 
-# Chunking configuration for long documents
-CHUNK_THRESHOLD_CHARS = 7_000   # only chunk if cleaned text exceeds this
-CHUNK_SIZE_CHARS = 6_000
-CHUNK_OVERLAP_CHARS = 300
+# Chunking configuration for long documents.
+# Current Gemini models comfortably handle far more than this in one request —
+# chunking exists only for genuinely long documents (e.g. long reports, books),
+# not typical multi-page PDFs. A low threshold here needlessly turns a single
+# API call into several sequential ones, which increases the chance that one
+# transient error interrupts the whole pipeline.
+CHUNK_THRESHOLD_CHARS = 40_000  # only chunk if cleaned text exceeds this
+CHUNK_SIZE_CHARS = 30_000
+CHUNK_OVERLAP_CHARS = 500
 
 # PDF upload limits
 MAX_PDF_SIZE_MB = 20

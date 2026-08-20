@@ -18,8 +18,9 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass
-from typing import List
+from typing import Callable, List, TypeVar
 
 import streamlit as st
 from google import genai
@@ -32,6 +33,15 @@ logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT_MS = 60_000
 DEFAULT_TEMPERATURE = 0.3
+
+# Transient errors (server-side hiccups, timeouts, brief rate limiting) are
+# retried automatically with a short backoff before being surfaced to the
+# user. Quota and invalid-key errors are never retried — retrying can't fix
+# either of those.
+MAX_RETRIES = 2
+RETRY_BACKOFF_SECONDS = 1.5
+
+_T = TypeVar("_T")
 
 
 class AIServiceError(Exception):
@@ -56,6 +66,10 @@ class AIRateLimitError(AIServiceError):
 
 class AITimeoutError(AIServiceError):
     pass
+
+
+class AIServerError(AIServiceError):
+    """Gemini returned a 5xx server error. This is transient and safe to retry."""
 
 
 class AIEmptyResponseError(AIServiceError):
@@ -121,7 +135,7 @@ def _classify_error(exc: Exception) -> AIServiceError:
     if code is not None:
         try:
             if 500 <= int(code) < 600:
-                return AIServiceError(
+                return AIServerError(
                     "Gemini's servers are temporarily having issues. Please try "
                     "again in a moment."
                 )
@@ -141,23 +155,53 @@ def _extract_text(response) -> str:
     return (text or "").strip()
 
 
+# Errors worth retrying automatically: a brief server hiccup, a timeout, or a
+# short burst of rate limiting are all commonly transient. Quota errors and
+# invalid-key errors are deliberately excluded — retrying won't fix either.
+_RETRYABLE_ERROR_TYPES = (AIServerError, AITimeoutError, AIRateLimitError)
+
+
+def _call_gemini_with_retry(make_call: Callable[[], _T]) -> _T:
+    """Call Gemini, retrying up to MAX_RETRIES times (with a short backoff)
+    if the failure looks transient. Chunked/long documents make several
+    sequential Gemini calls, so a single blip shouldn't fail the whole run."""
+    last_error: AIServiceError = AIServiceError("Gemini request failed.")
+
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            return make_call()
+        except genai_errors.APIError as exc:
+            last_error = _classify_error(exc)
+        except Exception as exc:  # network errors, timeouts, etc.
+            last_error = _classify_error(exc)
+
+        is_last_attempt = attempt == MAX_RETRIES
+        if not isinstance(last_error, _RETRYABLE_ERROR_TYPES) or is_last_attempt:
+            logger.warning("Gemini call failed (attempt %s): %s", attempt + 1, last_error)
+            raise last_error from None
+
+        logger.warning(
+            "Transient Gemini error on attempt %s/%s, retrying: %s",
+            attempt + 1, MAX_RETRIES + 1, last_error,
+        )
+        time.sleep(RETRY_BACKOFF_SECONDS * (attempt + 1))
+
+    raise last_error  # pragma: no cover — loop always returns or raises above
+
+
 def generate_text(prompt: str, *, temperature: float = DEFAULT_TEMPERATURE) -> str:
     """Send a plain-text prompt to Gemini and return the plain-text response."""
     client = _build_client()
     config = get_config()
 
-    try:
-        response = client.models.generate_content(
+    def make_call():
+        return client.models.generate_content(
             model=config.gemini_model,
             contents=prompt,
             config=types.GenerateContentConfig(temperature=temperature),
         )
-    except genai_errors.APIError as exc:
-        logger.warning("Gemini API error: %s", exc)
-        raise _classify_error(exc) from exc
-    except Exception as exc:  # network errors, timeouts, etc.
-        logger.warning("Unexpected error calling Gemini: %s", exc)
-        raise _classify_error(exc) from exc
+
+    response = _call_gemini_with_retry(make_call)
 
     text = _extract_text(response)
     if not text:
@@ -172,8 +216,8 @@ def generate_structured(
     client = _build_client()
     config = get_config()
 
-    try:
-        response = client.models.generate_content(
+    def make_call():
+        return client.models.generate_content(
             model=config.gemini_model,
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -181,12 +225,8 @@ def generate_structured(
                 response_mime_type="application/json",
             ),
         )
-    except genai_errors.APIError as exc:
-        logger.warning("Gemini API error: %s", exc)
-        raise _classify_error(exc) from exc
-    except Exception as exc:
-        logger.warning("Unexpected error calling Gemini: %s", exc)
-        raise _classify_error(exc) from exc
+
+    response = _call_gemini_with_retry(make_call)
 
     raw_text = _extract_text(response)
     if not raw_text:
